@@ -171,10 +171,12 @@
     return bytes;
   }
 
-
+  function setFocus() {
+    document.getElementById('key').focus();
+  }
   
   </script>        
-  <body style="font-family: sans-serif">     
+  <body style="font-family: sans-serif" onload=" setFocus(); ">     
     <br>Keyphrase:&nbsp;    
     <input type="password" size="30" id="key" oninput="updateMD5();" onkeypress= "if(window.event.keyCode=='13') load()" value="">
     <input type="button" onclick="load()" value="load">&nbsp;&nbsp;
