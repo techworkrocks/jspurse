@@ -176,13 +176,13 @@
   }
   
   </script>        
-  <body style="font-family: sans-serif" onload=" setFocus(); ">     
+  <body style="font-family: sans-serif; background-color: #15496f" onload=" setFocus(); ">     
     <br>Keyphrase:&nbsp;    
     <input type="password" size="30" id="key" oninput="updateMD5();" onkeypress= "if(window.event.keyCode=='13') load()" value="">
     <input type="button" onclick="load()" value="load">&nbsp;&nbsp;
     <input type="button" onclick="clean()" value="clear">&nbsp;&nbsp;
     <a href="treasure.enc" target="_blank">Backup</a><br/>
     <span style="color: #777777; font-family:monospace" id="md5">&nbsp;</span><br/>
-    <textarea rows="40" cols="100" id="ta"></textarea><br/>
+    <textarea style="background-color: #6aa2ca" rows="40" cols="100" id="ta"></textarea><br/>
     <input type="button" onclick="if(confirm('You really want to save the current data?')) doEncodeAndSave();" value="save">
 </html>
