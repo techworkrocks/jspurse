@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>     
+  <head>       
+    <meta http-equiv="content-type" content="text/html; charset=windows-1250">       
+    <title>    
+    </title>     
+  </head>      
+<script type="text/javascript" src="forge.min.js"></script> 
+    
+<script type="text/javascript">
+
+  // Reads txt and keyphrase from its elements, encodes using the
+  // actual encoding function and initiates the saving to the web server. 
+  function doEncodeAndSave() {
+    var txt = document.getElementById('ta').value;
+    var keyphrase = document.getElementById('key').value; 
+    
+    enc = encode(txt, keyphrase);  
+    save(enc);
+  }
+
+ 
+  // Initiates the decoding of the given txt. Removes the woven in part
+  // of the MD5 string, and return the result of the actual decoding
+  // function.
+  function doDecode(txt) {
+    var ta = document.getElementById('ta');
+    var keyphrase = document.getElementById('key').value; 
+    
+    // remove the md5 part from within the base64 encoded string before
+    // the actual decoding
+    var md5beg = forge.util.encode64(calculateMD5Bytes(keyphrase).substr(0,2)); 
+    var index = txt.charCodeAt(0)*256 + txt.charCodeAt(1) + 
+          md5beg.charCodeAt(0)*256 + md5beg.charCodeAt(1);
+    var pos = 2  +  index % (txt.length - 20 - 2);
+    
+    var txtClean = txt.substr(0, pos) + txt.substr(pos+20);
+    dec = decode(forge.util.decode64(txtClean), keyphrase);
+    
+    ta.value = dec; 
+  }
+   
+  
+  // Encodes the given txt with keyphrase using AES-CBS. The result is a
+  // base64 encoded string that contains salt+initial vector+encoded msg.  
+  function encode(txt, keyphrase) {
+    var salt = forge.random.getBytesSync(128);
+    var iv = forge.random.getBytesSync(16);
+    var key = forge.pkcs5.pbkdf2(keyphrase, salt, 59, 16);
+    
+    // encrypt some bytes using GCM mode
+    var cipher = forge.cipher.createCipher('AES-CBC', key);
+    cipher.start({iv: iv});
+    cipher.update(forge.util.createBuffer(txt));
+    cipher.finish();
+    var bytes = cipher.output.getBytes();
+                                         
+    var c = forge.util.encode64(salt + iv + bytes);
+  
+    // first 4 digits are used for position of md5 in encoded string
+    var md5beg = forge.util.encode64(calculateMD5Bytes(keyphrase).substr(0,2)); 
+  
+    var index = c.charCodeAt(0)*256 + c.charCodeAt(1) + 
+          md5beg.charCodeAt(0)*256 + md5beg.charCodeAt(1);
+    var pos = 2 +  index % (c.length - 2);
+  
+    var md5part = forge.util.encode64(calculateMD5Bytes(keyphrase)).substr(2,20);
+  
+    var r = c.substr(0,pos) + md5part + c.substr(pos);
+    return r;  
+  }
+
+  // Decode specified string using keyphrase. Expects salt and initial vector
+  // as being part of txt
+  function decode(txt, keyphrase) {
+    var salt = txt.substr(0, 128);
+    var iv = txt.substr(128,16);
+    var key = forge.pkcs5.pbkdf2(keyphrase, salt, 59, 16);
+    
+    // encrypt some bytes using GCM mode
+    var decipher = forge.cipher.createDecipher('AES-CBC', key);
+    decipher.start({iv: iv});
+    decipher.update(forge.util.createBuffer(txt.substr(144)));
+
+    decipher.finish();
+    var decrypted = decipher.output.getBytes().toString();
+
+    return decrypted;
+  }
+
+
+  // Performs a simple POST request to the webserver containing the 
+  // encoded string
+  function save(txt) {
+    if (window.XMLHttpRequest) {
+      var req=new XMLHttpRequest();
+    } else {// for IE6, IE5
+      var req=new ActiveXObject("Microsoft.XMLHTTP");
+    }
+  
+    req.onreadystatechange=function() {
+      if (req.readyState==4 && req.status==200) {
+        alert('Save ok!\n\n' /* +req.responseText */);
+      } else if(req.readyState==4) {
+        alert('Error saving. Details:\n\n'+req.responseText);
+      }
+    }
+    
+    params = "msg="+encodeURIComponent(txt);
+    
+    req.open("POST","save.php",true);
+    req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    req.send(params);
+  }
+
+  // Initiates an asynchronous load of the encrypted string from the web
+  // server. The callback method hands over the received encoded message to
+  // doDecode. 
+  function load() {
+    if (window.XMLHttpRequest) {
+      var req=new XMLHttpRequest();
+    } else {// code for IE6, IE5
+      var req=new ActiveXObject("Microsoft.XMLHTTP");
+    }
+  
+    req.onreadystatechange=function() {
+      if (req.readyState==4 && req.status==200) {
+        doDecode(req.responseText);
+      } else if(req.readyState==4) {
+        alert('Error loading. Details:\n\n'+req.responseText);
+      }
+    }
+  
+    req.open("GET","treasure.enc?t"+(new Date()).getMilliseconds(),true);
+    req.send();
+  }
+
+  function clean() {
+    document.getElementById('key').value = '';
+    document.getElementById('md5').innerHTML = '&nbsp;';
+    document.getElementById('ta').value = '';
+  }
+
+  // update md5 output
+  function updateMD5() {
+    var line = document.getElementById('md5');
+    var t = document.getElementById('key').value;
+    line.innerHTML = forge.util.encode64(calculateMD5Bytes(t)).substr(0,20) + 
+      '  ' + calculateMD5Hex(t); 
+  }
+  
+  function calculateMD5Hex(t) {
+    var md = forge.md.md5.create();  
+    md.start();  
+    md.update(t, "utf8");  
+    return md.digest().toHex();  
+  }
+
+  function calculateMD5Bytes(t) {
+    var md = forge.md.md5.create();  
+    md.start();  
+    md.update(t, "utf8");  
+    return md.digest().getBytes();
+  }
+  
+  function strToBytes(str) {
+    var bytes = [];
+    for (var i = 0; i < str.length; ++i) {
+      bytes.push(str.charCodeAt(i));
+    }
+    return bytes;
+  }
+
+
+  
+  </script>        
+  <body style="font-family: sans-serif">     
+    <br>Keyphrase:&nbsp;    
+    <input type="password" size="30" id="key" oninput="updateMD5();" onkeypress= "if(window.event.keyCode=='13') load()" value="">
+    <input type="button" onclick="load()" value="load">&nbsp;&nbsp;
+    <input type="button" onclick="clean()" value="clear">&nbsp;&nbsp;
+    <a href="treasure.enc" target="_blank">Backup</a><br/>
+    <span style="color: #777777; font-family:monospace" id="md5">&nbsp;</span><br/>
+    <textarea rows="40" cols="100" id="ta"></textarea><br/>
+    <input type="button" onclick="if(confirm('You really want to save the current data?')) doEncodeAndSave();" value="save">
+</html>
