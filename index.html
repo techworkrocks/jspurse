@@ -135,7 +135,7 @@
     req.send();
   }
 
-  function clean() {
+  function clearUp() {
     document.getElementById('key').value = '';
     document.getElementById('md5').innerHTML = '&nbsp;';
     document.getElementById('ta').value = '';
@@ -146,8 +146,8 @@
   function updateMD5() {
     var line = document.getElementById('md5');
     var t = document.getElementById('key').value;
-    line.innerHTML = forge.util.encode64(calculateMD5Bytes(t)).substr(0,20) + 
-      '  ' + calculateMD5Hex(t); 
+    line.innerHTML = 'MD5: ' + forge.util.encode64(calculateMD5Bytes(t)).substr(0,20) + 
+      ' == ' + calculateMD5Hex(t); 
   }
   
   function calculateMD5Hex(t) {
@@ -177,13 +177,16 @@
   }
   
   </script>        
-  <body style="font-family: sans-serif; background-color: #15496f" onload=" setFocus(); ">     
-    <br>Keyphrase:&nbsp;    
+  <body style="font-family: sans-serif; background-color: #15496f; color: #dddddd; " onload="setFocus();">     
+    <br>Keyphrase:<br/>    
     <input type="password" size="30" id="key" oninput="updateMD5();" onkeypress= "if(window.event.keyCode=='13') load()" value="">
-    <input type="button" onclick="load()" value="load">&nbsp;&nbsp;
-    <input type="button" onclick="clean()" value="clear">&nbsp;&nbsp;
-    <a href="treasure.enc" target="_blank">Backup</a><br/>
+    <br/>
     <span style="color: #777777; font-family:monospace" id="md5">&nbsp;</span><br/>
-    <textarea style="background-color: #6aa2ca" rows="40" cols="100" id="ta"></textarea><br/>
-    <input type="button" onclick="if(confirm('You really want to save the current data?')) doEncodeAndSave();" value="save">
+    <br>Content:<br/>    
+    <textarea style="background-color: #6aa2ca" rows="40" cols="100" id="ta"></textarea><br/><br/>
+    <input type="button" onclick="if(confirm('You really want to save the current data?')) doEncodeAndSave();" value="save">&nbsp;&nbsp;
+    <input type="button" onclick="load()" value="load">&nbsp;&nbsp;
+    <input type="button" onclick="clearUp()" value="clear">&nbsp;&nbsp;
+    <input type="button" onclick="window.open('treasure.enc','_blank');" value="backup">
+  </body>
 </html>
